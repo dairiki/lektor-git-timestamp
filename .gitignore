@@ -1,0 +1,6 @@
+*~
+*.pyc
+*.pyo
+lektor_git_timestamp.egg-info
+/dist/
+/build/
