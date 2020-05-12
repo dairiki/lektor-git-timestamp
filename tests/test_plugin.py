@@ -59,7 +59,7 @@ class DummyGitRepo(object):
         file_path = self.work_tree / filename
         file_path.write_text(u'changed')
 
-    def commit(self, filename, ts=None):
+    def commit(self, filename, ts=None, message='test'):
         if ts is None:
             env = os.environ
         else:
@@ -68,7 +68,8 @@ class DummyGitRepo(object):
             env['GIT_AUTHOR_DATE'] = dt.isoformat('T')
         self.touch(filename)
         self.run_git('add', str(filename))
-        self.run_git('commit', '--message=test', env=env)
+        self.run_git('commit', '--allow-empty', '--message', str(message),
+                     env=env)
 
 
 @pytest.fixture
@@ -88,6 +89,12 @@ class Test__git_mtime(object):
         ts = 1589238186
         git_repo.commit('test.txt', ts)
         assert _git_mtime('test.txt') == ts
+
+    def test_ignore_commit(self, git_repo):
+        ts = 1589238186
+        git_repo.commit('test.txt', ts)
+        git_repo.commit('test.txt', message='SKIP')
+        assert _git_mtime('test.txt', 'SKIP') == ts
 
     def test_returns_none_if_not_in_tree(self, git_repo):
         git_repo.touch('test.txt')
@@ -139,7 +146,7 @@ class DummyPage(object):
 class TestGitTimestampDescriptor(object):
     @pytest.fixture
     def desc(self):
-        return GitTimestampDescriptor(object())
+        return GitTimestampDescriptor()
 
     def test_class_descriptor(self, desc):
         assert desc.__get__(None, object) is desc
