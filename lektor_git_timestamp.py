@@ -27,7 +27,7 @@ def _git_mtime(filename):
 
 
 def _is_dirty(filename):
-    status = run_git('diff', '--name-status', 'HEAD', '--', filename)
+    status = run_git('status', '-z', '--', filename)
     return status != ''
 
 
@@ -38,7 +38,7 @@ def get_mtime(filename):
     return mtime if mtime is not None else _fs_mtime(filename)
 
 
-class TimestampDescriptor(object):
+class GitTimestampDescriptor(object):
     def __init__(self, type_):
         self.type_ = type_
 
@@ -53,7 +53,7 @@ class GitTimestampType(DateTimeType):
     def value_from_raw(self, raw):
         value = super(GitTimestampType, self).value_from_raw(raw)
         if jinja2.is_undefined(value):
-            value = TimestampDescriptor(self)
+            value = GitTimestampDescriptor(self)
         return value
 
 
