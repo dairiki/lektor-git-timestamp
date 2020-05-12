@@ -2,7 +2,6 @@
 import datetime
 import os
 import subprocess
-import time
 
 import pytest
 
@@ -18,6 +17,21 @@ from lektor_git_timestamp import (
     GitTimestampType,
     GitTimestampPlugin,
     )
+
+
+try:
+    utc = datetime.timezone.utc
+except AttributeError:          # py2
+    class UTC(datetime.tzinfo):
+        def utcoffset(self, dt):
+            return datetime.timedelta(0)
+
+        def tzname(self, dt):
+            return "UTC"
+
+        def dst(self, dt):
+            return datetime.timedelta(0)
+    utc = UTC()
 
 
 def test_run_git():
@@ -43,13 +57,13 @@ class DummyGitRepo(object):
 
     def modify(self, filename):
         file_path = self.work_tree / filename
-        file_path.write_text('changed')
+        file_path.write_text(u'changed')
 
     def commit(self, filename, ts=None):
         if ts is None:
             env = os.environ
         else:
-            dt = datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
+            dt = datetime.datetime.fromtimestamp(ts, utc)
             env = os.environ.copy()
             env['GIT_AUTHOR_DATE'] = dt.isoformat('T')
         self.touch(filename)
