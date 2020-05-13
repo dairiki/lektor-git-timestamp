@@ -29,10 +29,13 @@ setup(
     classifiers=[
         'Framework :: Lektor',
         'Environment :: Plugins',
-    ],
+        ],
     entry_points={
         'lektor.plugins': [
             'git-timestamp = lektor_git_timestamp:GitTimestampPlugin',
-        ]
-    }
+            ],
+        },
+    install_requires=[
+        'more-itertools'
+        ],
 )
