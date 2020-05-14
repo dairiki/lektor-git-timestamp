@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 import datetime
 import os
+import re
 import subprocess
 
 import pytest
 
+from lektor.reporter import BufferReporter
 from lektor.types import RawValue
 
 from lektor_git_timestamp import (
     run_git,
     _fs_mtime,
-    _git_mtime,
     _is_dirty,
+    _iter_timestamps,
     get_mtime,
     GitTimestampDescriptor,
     GitTimestampType,
@@ -78,27 +80,18 @@ def git_repo(tmp_path):
     return DummyGitRepo(tmp_path)
 
 
-def test__fs_mtime(git_repo):
-    ts = 1589238180
-    git_repo.touch('test.txt', ts)
-    assert _fs_mtime('test.txt') == ts
+class Test__fs_mtime(object):
+    def test(self, git_repo):
+        ts = 1589238180
+        git_repo.touch('test.txt', ts)
+        assert _fs_mtime('test.txt') == ts
 
-
-class Test__git_mtime(object):
-    def test_timestamp(self, git_repo):
-        ts = 1589238186
-        git_repo.commit('test.txt', ts)
-        assert _git_mtime('test.txt') == ts
-
-    def test_ignore_commit(self, git_repo):
-        ts = 1589238186
-        git_repo.commit('test.txt', ts)
-        git_repo.commit('test.txt', message='SKIP')
-        assert _git_mtime('test.txt', 'SKIP') == ts
-
-    def test_returns_none_if_not_in_tree(self, git_repo):
-        git_repo.touch('test.txt')
-        assert _git_mtime('test.txt') is None
+    def test_missing_file(self, git_repo, env):
+        with BufferReporter(env) as reporter:
+            assert _fs_mtime('test.txt') is None
+        event, data = reporter.buffer[0]
+        assert event == 'generic'
+        assert re.match(r'test.txt: .*(?i)no such file', data['message'])
 
 
 class Test__is_dirty(object):
@@ -114,6 +107,29 @@ class Test__is_dirty(object):
         git_repo.commit('test.txt')
         git_repo.modify('test.txt')
         assert _is_dirty('test.txt')
+
+
+class Test__iter_timestamps(object):
+    def test_from_git(self, git_repo):
+        ts = 1589238186
+        git_repo.commit('test.txt', ts, 'message')
+        assert list(_iter_timestamps('test.txt')) == [(ts, 'message')]
+
+    def test_from_mtime(self, git_repo):
+        ts = 1589238186
+        git_repo.touch('test.txt', ts)
+        assert list(_iter_timestamps('test.txt')) == [(ts, None)]
+
+    def test_from_mtime_and_git(self, git_repo):
+        ts1 = 1589238000
+        ts2 = 1589238180
+        git_repo.commit('test.txt', ts1, 'commit')
+        git_repo.modify('test.txt')
+        git_repo.touch('test.txt', ts2)
+        assert list(_iter_timestamps('test.txt')) == [
+            (ts2, None),
+            (ts1, 'commit'),
+            ]
 
 
 class Test_get_mtime(object):
@@ -132,7 +148,17 @@ class Test_get_mtime(object):
         git_repo.commit('test.txt')
         git_repo.modify('test.txt')
         git_repo.touch('test.txt', ts)
-        assert get_mtime('test.txt') == ts
+        assert get_mtime('test.txt', ignore_commits=r'ignore') == ts
+
+    def test_ignore_commits(self, git_repo):
+        ts1 = 1589238000
+        ts2 = 1589238180
+        git_repo.commit('test.txt', ts1, 'commit 1')
+        git_repo.commit('test.txt', ts2, '[skip] commit 2')
+        assert get_mtime('test.txt', ignore_commits=r'\[skip\]') == ts1
+
+    def test_missing_file(self, git_repo):
+        assert get_mtime('test.txt') is None
 
 
 class DummyPage(object):
