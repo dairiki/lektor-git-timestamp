@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple
 import datetime
+from operator import attrgetter
 import os
 import re
 import subprocess
@@ -9,6 +10,7 @@ import jinja2
 from lektor.pluginsystem import Plugin
 from lektor.reporter import reporter
 from lektor.types import DateTimeType
+from lektor.utils import bool_from_string
 
 
 def run_git(*args):
@@ -50,31 +52,52 @@ def _iter_timestamps(filename):
             yield timestamp(int(ts), commit_message)
 
 
-def get_mtime(filename, ignore_commits=None):
-    def is_ignored(timestamp):
+def get_mtime(filename,
+              ignore_commits=None,
+              strategy='last',
+              skip_first_commit=False):
+    def is_not_ignored(timestamp):
         if ignore_commits is None:
-            return False
+            return True
         message = timestamp.commit_message
         if message is None:
-            return False
-        return re.search(ignore_commits, message) is not None
+            return True
+        return re.search(ignore_commits, message) is None
 
-    for timestamp in _iter_timestamps(filename):
-        if not is_ignored(timestamp):
-            return timestamp.ts
+    timestamps = list(filter(is_not_ignored, _iter_timestamps(filename)))
+    if skip_first_commit:
+        timestamps = timestamps[:-1]
+
+    if len(timestamps) == 0:
+        return None
+    elif strategy == 'first':
+        return timestamps[-1].ts
+    elif strategy == 'earliest':
+        return min(map(attrgetter('ts'), timestamps))
+    elif strategy == 'latest':
+        return max(map(attrgetter('ts'), timestamps))
+    else:                       # strategy == 'last'
+        return timestamps[0].ts
 
 
 class GitTimestampDescriptor(object):
-    def __init__(self, ignore_commits=None):
-        self.ignore_commits = ignore_commits
-
-    def _get_mtime(self, filename):
-        return get_mtime(filename, ignore_commits=self.ignore_commits)
+    def __init__(self, raw,
+                 ignore_commits=None,
+                 strategy='last',
+                 skip_first_commit=False):
+        self.raw = raw
+        self.kwargs = {
+            'ignore_commits': ignore_commits,
+            'strategy': timestamp,
+            'skip_first_commit': skip_first_commit,
+            }
 
     def __get__(self, obj, type_=None):
         if obj is None:
             return self
-        mtime = max(map(self._get_mtime, obj.iter_source_filenames()))
+        mtime = get_mtime(obj.source_filename, **self.kwargs)
+        if mtime is None:
+            return self.raw.missing_value("no suitable git timestamp exists")
         return datetime.datetime.fromtimestamp(mtime)
 
 
@@ -82,8 +105,14 @@ class GitTimestampType(DateTimeType):
     def value_from_raw(self, raw):
         value = super(GitTimestampType, self).value_from_raw(raw)
         if jinja2.is_undefined(value):
+            options = self.options
             value = GitTimestampDescriptor(
-                ignore_commits=self.options.get('ignore_commits'))
+                raw,
+                ignore_commits=options.get('ignore_commits'),
+                strategy=options.get('strategy', 'last'),
+                skip_first_commit=bool_from_string(
+                    options.get('skip_first_commit', False)),
+                )
         return value
 
 

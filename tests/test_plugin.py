@@ -6,6 +6,7 @@ import subprocess
 
 import pytest
 
+import jinja2
 from lektor.reporter import BufferReporter
 from lektor.types import RawValue
 
@@ -59,7 +60,8 @@ class DummyGitRepo(object):
 
     def modify(self, filename):
         file_path = self.work_tree / filename
-        file_path.write_text(u'changed')
+        with file_path.open('at') as f:
+            f.write(u'changed\n')
 
     def commit(self, filename, ts=None, message='test'):
         if ts is None:
@@ -68,10 +70,9 @@ class DummyGitRepo(object):
             dt = datetime.datetime.fromtimestamp(ts, utc)
             env = os.environ.copy()
             env['GIT_AUTHOR_DATE'] = dt.isoformat('T')
-        self.touch(filename)
+        self.modify(filename)
         self.run_git('add', str(filename))
-        self.run_git('commit', '--allow-empty', '--message', str(message),
-                     env=env)
+        self.run_git('commit', '--message', str(message), env=env)
 
 
 @pytest.fixture
@@ -91,7 +92,7 @@ class Test__fs_mtime(object):
             assert _fs_mtime('test.txt') is None
         event, data = reporter.buffer[0]
         assert event == 'generic'
-        assert re.match(r'test.txt: .*(?i)no such file', data['message'])
+        assert re.match(r'(?i)test.txt: .*\bno such file', data['message'])
 
 
 class Test__is_dirty(object):
@@ -157,6 +158,39 @@ class Test_get_mtime(object):
         git_repo.commit('test.txt', ts2, '[skip] commit 2')
         assert get_mtime('test.txt', ignore_commits=r'\[skip\]') == ts1
 
+    def test_skip_first_commit(self, git_repo):
+        ts1 = 1589238000
+        ts2 = 1589238180
+        git_repo.commit('test.txt', ts1)
+        assert get_mtime('test.txt', skip_first_commit=True) is None
+        git_repo.commit('test.txt', ts2)
+        assert get_mtime('test.txt', skip_first_commit=True) == ts2
+
+    def test_first(self, git_repo):
+        ts1 = 1589238000
+        ts2 = 1589238180
+        git_repo.commit('test.txt', ts1)
+        git_repo.commit('test.txt', ts2)
+        assert get_mtime('test.txt', strategy='first') == ts1
+
+    def test_earliest(self, git_repo):
+        ts1 = 1589238000
+        ts2 = 1589237700
+        ts3 = 1589238180
+        git_repo.commit('test.txt', ts1)
+        git_repo.commit('test.txt', ts2)
+        git_repo.commit('test.txt', ts3)
+        assert get_mtime('test.txt', strategy='earliest') == ts2
+
+    def test_latest(self, git_repo):
+        ts1 = 1589238000
+        ts2 = 1589238300
+        ts3 = 1589238180
+        git_repo.commit('test.txt', ts1)
+        git_repo.commit('test.txt', ts2)
+        git_repo.commit('test.txt', ts3)
+        assert get_mtime('test.txt', strategy='latest') == ts2
+
     def test_missing_file(self, git_repo):
         assert get_mtime('test.txt') is None
 
@@ -172,7 +206,8 @@ class DummyPage(object):
 class TestGitTimestampDescriptor(object):
     @pytest.fixture
     def desc(self):
-        return GitTimestampDescriptor()
+        raw = RawValue('test', None)
+        return GitTimestampDescriptor(raw)
 
     def test_class_descriptor(self, desc):
         assert desc.__get__(None, object) is desc
@@ -183,6 +218,10 @@ class TestGitTimestampDescriptor(object):
         git_repo.commit('test.txt', ts)
         record = DummyPage(source_filename=os.path.abspath('test.txt'))
         assert desc.__get__(record) == dt
+
+    def test_get_returns_undefined(self, desc, git_repo):
+        record = DummyPage(source_filename=os.path.abspath('test.txt'))
+        assert jinja2.is_undefined(desc.__get__(record))
 
 
 class TestGitTimestampType(object):
