@@ -1,16 +1,25 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple
 import datetime
+import hashlib
 from operator import attrgetter
 import os
+import pickle
 import re
 import subprocess
 
 import jinja2
+from lektor.context import get_ctx
 from lektor.pluginsystem import Plugin
 from lektor.reporter import reporter
+from lektor.sourceobj import VirtualSourceObject
 from lektor.types import DateTimeType
 from lektor.utils import bool_from_string
+from werkzeug.utils import cached_property
+
+from lektorlib.recordcache import get_or_create_virtual
+
+VIRTUAL_PATH_PREFIX = 'git-timestamp'
 
 
 def run_git(*args):
@@ -52,7 +61,7 @@ def _iter_timestamps(filename):
             yield timestamp(int(ts), commit_message)
 
 
-def get_mtime(filename,
+def get_mtime(timestamps,
               ignore_commits=None,
               strategy='last',
               skip_first_commit=False):
@@ -64,20 +73,43 @@ def get_mtime(filename,
             return True
         return re.search(ignore_commits, message) is None
 
-    timestamps = list(filter(is_not_ignored, _iter_timestamps(filename)))
+    filtered = list(filter(is_not_ignored, timestamps))
     if skip_first_commit:
-        timestamps = timestamps[:-1]
+        filtered = filtered[:-1]
 
-    if len(timestamps) == 0:
+    if len(filtered) == 0:
         return None
     elif strategy == 'first':
-        return timestamps[-1].ts
+        return filtered[-1].ts
     elif strategy == 'earliest':
-        return min(map(attrgetter('ts'), timestamps))
+        return min(map(attrgetter('ts'), filtered))
     elif strategy == 'latest':
-        return max(map(attrgetter('ts'), timestamps))
+        return max(map(attrgetter('ts'), filtered))
     else:                       # strategy == 'last'
-        return timestamps[0].ts
+        return filtered[0].ts
+
+
+def _compute_checksum(data):
+    return hashlib.sha1(pickle.dumps(data, protocol=0)).hexdigest()
+
+
+class GitTimestampSource(VirtualSourceObject):
+    @classmethod
+    def get(cls, record):
+        def creator():
+            return cls(record)
+        return get_or_create_virtual(record, VIRTUAL_PATH_PREFIX, creator)
+
+    @property
+    def path(self):
+        return "{}@{}".format(self.record.path, VIRTUAL_PATH_PREFIX)
+
+    def get_checksum(self, path_cache):
+        return _compute_checksum(self.timestamps)
+
+    @cached_property
+    def timestamps(self):
+        return tuple(_iter_timestamps(self.source_filename))
 
 
 class GitTimestampDescriptor(object):
@@ -95,7 +127,11 @@ class GitTimestampDescriptor(object):
     def __get__(self, obj, type_=None):
         if obj is None:
             return self
-        mtime = get_mtime(obj.source_filename, **self.kwargs)
+        ctx = get_ctx()
+        src = GitTimestampSource.get(obj)
+        if ctx:
+            ctx.record_virtual_dependency(src)
+        mtime = get_mtime(src.timestamps, **self.kwargs)
         if mtime is None:
             return self.raw.missing_value("no suitable git timestamp exists")
         return datetime.datetime.fromtimestamp(mtime)
@@ -121,4 +157,11 @@ class GitTimestampPlugin(Plugin):
     description = u'Lektor type to deduce page modification time from git'
 
     def on_setup_env(self, **extra):
-        self.env.add_type(GitTimestampType)
+        env = self.env
+        env.add_type(GitTimestampType)
+        env.virtualpathresolver(VIRTUAL_PATH_PREFIX)(self.resolve_virtual_path)
+
+    @staticmethod
+    def resolve_virtual_path(record, pieces):
+        if len(pieces) == 0:
+            return GitTimestampSource.get(record)

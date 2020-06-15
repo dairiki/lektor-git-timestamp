@@ -36,6 +36,7 @@ setup(
             ],
         },
     install_requires=[
-        'more-itertools'
+        'more-itertools',
+        'lektorlib',
         ],
 )
