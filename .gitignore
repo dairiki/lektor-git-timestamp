@@ -4,3 +4,6 @@
 lektor_git_timestamp.egg-info
 /dist/
 /build/
+/.tox/
+/.eggs/
+/htmlcov/

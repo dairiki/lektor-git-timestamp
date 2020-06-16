@@ -1,5 +1,10 @@
 # Lektor-Git-Timestamp
 
+[![PyPI version](https://img.shields.io/pypi/v/lektor-git-timestamp.svg)](https://pypi.org/project/lektor-git-timestamp/)
+[![PyPI Supported Python Versions](https://img.shields.io/pypi/pyversions/lektor-git-timestamp.svg)](https://pypi.python.org/pypi/lektor-git-timestamp/)
+[![GitHub license](https://img.shields.io/github/license/dairiki/lektor-git-timestamp)](https://github.com/dairiki/lektor-git-timestamp/blob/master/LICENSE)
+[![GitHub Actions (Tests)](https://github.com/dairiki/lektor-git-timestamp/workflows/Tests/badge.svg)](https://github.com/dairiki/lektor-git-timestamp)
+
 This Lektor plugin implements a new datetime-like type,
 `gittimestamp`, which gets it's default value from git timestamps.
 This can be used to implement auto-updating `pub_date` and `last_mod`
