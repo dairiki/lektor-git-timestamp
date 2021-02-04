@@ -294,6 +294,16 @@ class TestGitTimestampDescriptor(object):
         desc.__get__(record)
         assert '/@git-timestamp' in ctx.referenced_virtual_dependencies
 
+    def test_init_kwargs(self):
+        raw = RawValue('test', None)
+        kwargs = {
+            'ignore_commits': 'nochange',
+            'strategy': 'first',
+            'skip_first_commit': True,
+            }
+        desc = GitTimestampDescriptor(raw, **kwargs)
+        assert desc.kwargs == kwargs
+
 
 class TestGitTimestampType(object):
     @pytest.fixture
