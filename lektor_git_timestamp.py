@@ -120,7 +120,7 @@ class GitTimestampDescriptor(object):
         self.raw = raw
         self.kwargs = {
             'ignore_commits': ignore_commits,
-            'strategy': timestamp,
+            'strategy': strategy,
             'skip_first_commit': skip_first_commit,
             }
 
