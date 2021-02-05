@@ -13,8 +13,6 @@ import lektor.project
 import pytest
 from six import text_type
 
-from lektor_git_timestamp import GitTimestampPlugin
-
 
 @pytest.fixture
 def project(tmp_path):
@@ -25,12 +23,8 @@ def project(tmp_path):
 
 
 @pytest.fixture
-def env(env):
-    # Install our plugin
-    env.plugin_controller.instanciate_plugin('git-timestamp',
-                                             GitTimestampPlugin)
-    env.plugin_controller.emit('setup-env')
-    return env
+def env(project):
+    return project.make_env(load_plugins=True)
 
 
 @pytest.fixture(scope='session')
