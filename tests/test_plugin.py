@@ -204,7 +204,7 @@ class TestGitTimestampSource(object):
         "db24b207c382159c97a2a6cd177c05c0f218277a",
         marks=pytest.mark.xfail(
             sys.version_info >= (3,) and sys.version_info < (3, 7),
-            reason="pickle pickles integers differently in py35 and py36")
+            reason="pickle pickles integers differently in py36")
         ),
     ])
 def test__compute_checksum(data, checksum):
