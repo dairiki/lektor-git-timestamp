@@ -1,5 +1,13 @@
 ## Changelog
 
+### Release 0.1 (2021-02-05)
+
+No code changes.
+
+Update development status classifier to "stable".
+
+Add functional tests.
+
 ### Release 0.1a2 (2021-02-03)
 
 #### Bugs Fixed
