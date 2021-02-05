@@ -2,7 +2,6 @@
 import datetime
 import os
 import re
-import subprocess
 import sys
 
 import pytest
@@ -27,63 +26,9 @@ from lektor_git_timestamp import (
     )
 
 
-try:
-    utc = datetime.timezone.utc
-except AttributeError:          # py2
-    class UTC(datetime.tzinfo):
-        def utcoffset(self, dt):
-            return datetime.timedelta(0)
-
-        def tzname(self, dt):
-            return "UTC"
-
-        def dst(self, dt):
-            return datetime.timedelta(0)
-    utc = UTC()
-
-
 def test_run_git():
     output = run_git('--version')
     assert output.startswith('git version')
-
-
-class DummyGitRepo(object):
-    def __init__(self, work_tree):
-        self.work_tree = work_tree
-        self.run_git('init')
-        self.run_git('commit', '--message=initial', '--allow-empty')
-
-    def run_git(self, *args, **kwargs):
-        cmd = ['git'] + list(args)
-        subprocess.check_call(cmd, cwd=str(self.work_tree), **kwargs)
-
-    def touch(self, filename, ts=None):
-        file_path = self.work_tree / filename
-        file_path.touch()
-        if ts is not None:
-            os.utime(str(file_path), (ts, ts))
-
-    def modify(self, filename):
-        file_path = self.work_tree / filename
-        with file_path.open('at') as f:
-            f.write(u'changed\n')
-
-    def commit(self, filename, ts=None, message='test'):
-        if ts is None:
-            env = os.environ
-        else:
-            dt = datetime.datetime.fromtimestamp(ts, utc)
-            env = os.environ.copy()
-            env['GIT_AUTHOR_DATE'] = dt.isoformat('T')
-        self.modify(filename)
-        self.run_git('add', str(filename))
-        self.run_git('commit', '--message', str(message), env=env)
-
-
-@pytest.fixture
-def git_repo(tmp_path):
-    os.chdir(str(tmp_path))
-    return DummyGitRepo(tmp_path)
 
 
 class Test__fs_mtime(object):
@@ -283,8 +228,7 @@ class TestGitTimestampDescriptor(object):
 
     def test_get(self, desc, git_repo, record):
         dt = datetime.datetime.now().replace(microsecond=0)
-        ts = int(dt.strftime('%s'))
-        git_repo.commit('test.txt', ts)
+        git_repo.commit('test.txt', dt)
         assert desc.__get__(record) == dt
 
     def test_get_returns_undefined(self, desc, record):
