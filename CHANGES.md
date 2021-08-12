@@ -1,5 +1,12 @@
 ## Changelog
 
+### Release 0.1.0.post1 (2021-08-12)
+
+No code changes.
+
+Add warning to README about `lektor > 3.2` (not yet released) being
+required in order to be able to sort records by `gittimestamp` fields.
+
 ### Release 0.1 (2021-02-05)
 
 No code changes.
