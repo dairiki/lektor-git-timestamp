@@ -11,7 +11,10 @@ import jinja2
 import lektor.metaformat
 import lektor.project
 import pytest
+from pkg_resources import get_distribution, parse_version
 from six import text_type
+
+lektor_version = get_distribution("lektor").parsed_version
 
 
 @pytest.fixture
@@ -103,3 +106,14 @@ def test_last_mod_for_dirty_file(git_repo, pad, pub_date, last_mod, now):
     git_repo.modify('site/content/contents.lr', now)
     assert pad.root['pub_date'] == pub_date
     assert pad.root['last_mod'] == now
+
+
+@pytest.mark.xfail(
+    lektor_version < parse_version("3.3"),
+    reason="Lektor is too old to support sorting by descriptor-valued fields"
+)
+def test_get_sort_key(git_repo, pad, pub_date):
+    git_repo.commit('site/content/contents.lr', pub_date)
+    sort_key = pad.root.get_sort_key(['-pub_date'])
+    assert [_.value for _ in sort_key] == [pub_date]
+    assert sort_key[0].reverse

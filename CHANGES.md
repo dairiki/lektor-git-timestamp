@@ -4,6 +4,11 @@
 
 Test under python 3.10 and lektor<3.3.
 
+#### Testing
+
+- Test that `lektor.db.Record.get_sort_key` works with
+  descriptor-valued fields. (This requires `lektor>=3.3`.)
+
 ### Release 0.1.0.post1 (2021-08-12)
 
 No code changes.
