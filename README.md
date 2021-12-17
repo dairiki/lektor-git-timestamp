@@ -119,26 +119,23 @@ most recent commit for the file, except that:
 If there has only been one commit of the source file, `last_mod` will not have
 a default value.  (It will evaluate to a jinja2 Undefined instance.)
 
-## Warning: On sorting by `gittimestamp` in `Lektor <= 3.2`
+## Warning: On sorting by `gittimestamp` in `Lektor < 3.3`
 
 A common use case for timestamps is for sorting records.
 E.g. in a blog one generally wants to display posts in reverse
 chronological order by post date.  This generally won't work using
-`gittimestamp` timestamps under any currently released version of Lektor.
+`gittimestamp` timestamps with version of Lektor before 3.3.
 
 The `gittimestamp` type is implemented using a _field
 descriptor_. (This is required in order to defer computation of the
 field value until after the record for the page is available.) In
-`lektor<=3.2`, field descriptors are supported for most usages, the
+`lektor<3.3`, field descriptors are supported for most usages, the
 _one glaring exception_ being when sorting records.
 
 This was fixed in Lektor PR
 [#789](https://github.com/lektor/lektor/pull/789) which was merged to
-the master branch on February 6, 2021.
-Unfortunately, the last released version of Lektor (as of August 12,
-2021) is version 3.2, released August 20, 2020.  For now, you'll have
-to install Lektor from git if you want to be able to sort records by
-`gittimestamp`.
+the master branch on February 6, 2021, but didn't make it into a release
+until Lektor 3.3, released on December 13 2021.
 
 ## Author
 
