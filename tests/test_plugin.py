@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 import os
 import re
@@ -31,7 +30,7 @@ def test_run_git():
     assert output.startswith('git version')
 
 
-class Test__fs_mtime(object):
+class Test__fs_mtime:
     def test(self, git_repo):
         ts = 1589238180
         git_repo.touch('test.txt', ts)
@@ -45,7 +44,7 @@ class Test__fs_mtime(object):
         assert re.match(r'(?i)test.txt: .*\bno such file', data['message'])
 
 
-class Test__is_dirty(object):
+class Test__is_dirty:
     def test_dirty_if_not_in_git(self, git_repo):
         git_repo.touch('test.txt')
         assert _is_dirty('test.txt')
@@ -60,7 +59,7 @@ class Test__is_dirty(object):
         assert _is_dirty('test.txt')
 
 
-class Test__iter_timestamps(object):
+class Test__iter_timestamps:
     def test_from_git(self, git_repo):
         ts = 1589238186
         git_repo.commit('test.txt', ts, 'message')
@@ -83,7 +82,7 @@ class Test__iter_timestamps(object):
             ]
 
 
-class Test_get_mtime(object):
+class Test_get_mtime:
     def test_not_in_git(self):
         ts = 1589238006
         timestamps = (timestamp(ts, None),)
@@ -158,7 +157,7 @@ class Test_get_mtime(object):
         assert get_mtime(timestamps) is None
 
 
-class DummyPage(object):
+class DummyPage:
     alt = PRIMARY_ALT
 
     def __init__(self, source_filename, path='/', pad=None):
@@ -170,7 +169,7 @@ class DummyPage(object):
         yield self.source_filename
 
 
-class TestGitTimestampSource(object):
+class TestGitTimestampSource:
     @pytest.fixture
     def ts_now(self):
         return 1592256980
@@ -200,7 +199,7 @@ class TestGitTimestampSource(object):
     ((),
      "5d460934f4a194c28ce73ada3b56d2e025d5c47c"),
     pytest.param(
-        (timestamp(1592256980, u"message"),),
+        (timestamp(1592256980, "message"),),
         "db24b207c382159c97a2a6cd177c05c0f218277a",
         marks=pytest.mark.xfail(
             sys.version_info >= (3,) and sys.version_info < (3, 7),
@@ -212,7 +211,7 @@ def test__compute_checksum(data, checksum):
     assert _compute_checksum(data) == checksum
 
 
-class TestGitTimestampDescriptor(object):
+class TestGitTimestampDescriptor:
     @pytest.fixture
     def desc(self):
         raw = RawValue('test', None)
@@ -249,7 +248,7 @@ class TestGitTimestampDescriptor(object):
         assert desc.kwargs == kwargs
 
 
-class TestGitTimestampType(object):
+class TestGitTimestampType:
     @pytest.fixture
     def type_(self, env):
         options = {}
@@ -265,7 +264,7 @@ class TestGitTimestampType(object):
         assert isinstance(value, GitTimestampDescriptor)
 
 
-class TestGitTimestampPlugin(object):
+class TestGitTimestampPlugin:
     @pytest.fixture
     def plugin(self, env):
         return GitTimestampPlugin(env, 'git-timestamp')

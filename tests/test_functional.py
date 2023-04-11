@@ -1,18 +1,12 @@
-# -*- coding: utf-8 -*-
 import datetime
-try:
-    from pathlib import Path
-except ImportError:
-    # python < 3.4
-    from pathlib2 import Path
 import shutil
+from pathlib import Path
 
 import jinja2
 import lektor.metaformat
 import lektor.project
 import pytest
 from pkg_resources import get_distribution, parse_version
-from six import text_type
 
 lektor_version = get_distribution("lektor").parsed_version
 
@@ -21,8 +15,8 @@ lektor_version = get_distribution("lektor").parsed_version
 def project(tmp_path):
     site_src = Path(__file__).parent / 'test-site'
     site_path = tmp_path / 'site'
-    shutil.copytree(text_type(site_src), text_type(site_path))
-    return lektor.project.Project.from_path(str(site_path))
+    shutil.copytree(site_src, site_path)
+    return lektor.project.Project.from_path(site_path)
 
 
 @pytest.fixture

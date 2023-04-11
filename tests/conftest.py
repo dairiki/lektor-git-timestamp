@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 import os
 import subprocess
@@ -14,11 +13,11 @@ from lektor.project import Project
 def project(tmp_path_factory):
     site_path = tmp_path_factory.mktemp('site')
     project_file = site_path / 'site.lektorproject'
-    project_file.write_text(u"""
+    project_file.write_text("""
     [project]
     name = Test Project
     """)
-    return Project.from_file(str(project_file))
+    return Project.from_file(project_file)
 
 
 @pytest.fixture
@@ -57,7 +56,7 @@ except AttributeError:          # py2
     utc = UTC()
 
 
-class DummyGitRepo(object):
+class DummyGitRepo:
     def __init__(self, work_tree):
         self.work_tree = work_tree
         self.run_git('init')
@@ -65,7 +64,7 @@ class DummyGitRepo(object):
 
     def run_git(self, *args, **kwargs):
         cmd = ['git'] + list(args)
-        subprocess.check_call(cmd, cwd=str(self.work_tree), **kwargs)
+        subprocess.check_call(cmd, cwd=self.work_tree, **kwargs)
 
     def touch(self, filename, ts=None):
         file_path = self.work_tree / filename
@@ -73,12 +72,12 @@ class DummyGitRepo(object):
         if ts is not None:
             if isinstance(ts, datetime.datetime):
                 ts = int(ts.strftime("%s"))
-            os.utime(str(file_path), (ts, ts))
+            os.utime(file_path, (ts, ts))
 
     def modify(self, filename, ts=None):
         file_path = self.work_tree / filename
         with file_path.open('at') as f:
-            f.write(u'---\nchanged\n')
+            f.write('---\nchanged\n')
         if ts is not None:
             self.touch(filename, ts)
 
@@ -92,11 +91,11 @@ class DummyGitRepo(object):
             env = os.environ.copy()
             env['GIT_AUTHOR_DATE'] = dt.isoformat('T')
         self.modify(filename)
-        self.run_git('add', str(filename))
+        self.run_git('add', os.fspath(filename))
         self.run_git('commit', '--message', str(message), env=env)
 
 
 @pytest.fixture
 def git_repo(tmp_path):
-    os.chdir(str(tmp_path))
+    os.chdir(tmp_path)
     return DummyGitRepo(tmp_path)

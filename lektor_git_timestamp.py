@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import namedtuple
 import datetime
 import hashlib
@@ -23,16 +22,16 @@ VIRTUAL_PATH_PREFIX = 'git-timestamp'
 
 
 def run_git(*args):
-    cmd = ['git'] + list(args)
-    output = subprocess.check_output(cmd, universal_newlines=True)
-    return output.rstrip()
+    cmd = ('git', *args)
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return proc.stdout.rstrip()
 
 
 def _fs_mtime(filename):
     try:
         st = os.stat(filename)
     except OSError as exc:
-        reporter.report_generic("{}: {!s}".format(filename, exc))
+        reporter.report_generic(f"{filename}: {exc!s}")
         return None
     else:
         # (truncate to one second resolution)
@@ -102,7 +101,7 @@ class GitTimestampSource(VirtualSourceObject):
 
     @property
     def path(self):
-        return "{}@{}".format(self.record.path, VIRTUAL_PATH_PREFIX)
+        return f"{self.record.path}@{VIRTUAL_PATH_PREFIX}"
 
     def get_checksum(self, path_cache):
         return _compute_checksum(self.timestamps)
@@ -112,7 +111,7 @@ class GitTimestampSource(VirtualSourceObject):
         return tuple(_iter_timestamps(self.source_filename))
 
 
-class GitTimestampDescriptor(object):
+class GitTimestampDescriptor:
     def __init__(self, raw,
                  ignore_commits=None,
                  strategy='last',
@@ -139,7 +138,7 @@ class GitTimestampDescriptor(object):
 
 class GitTimestampType(DateTimeType):
     def value_from_raw(self, raw):
-        value = super(GitTimestampType, self).value_from_raw(raw)
+        value = super().value_from_raw(raw)
         if jinja2.is_undefined(value):
             options = self.options
             value = GitTimestampDescriptor(
@@ -154,7 +153,7 @@ class GitTimestampType(DateTimeType):
 
 class GitTimestampPlugin(Plugin):
     name = 'git-timestamp'
-    description = u'Lektor type to deduce page modification time from git'
+    description = 'Lektor type to deduce page modification time from git'
 
     def on_setup_env(self, **extra):
         env = self.env
