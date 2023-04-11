@@ -2,12 +2,17 @@
 
 ### Next Release
 
-Test under python 3.10 and lektor<3.3.
+- Drop support for python 2.7 and 3.6. ([#2])
 
 #### Testing
 
+- Test under python 3.10 and 3.11. ([#2])
+
 - Test that `lektor.db.Record.get_sort_key` works with
   descriptor-valued fields. (This requires `lektor>=3.3`.)
+
+[#2]: https://github.com/dairiki/lektor-git-timestamp/pull/2
+
 
 ### Release 0.1.0.post1 (2021-08-12)
 
