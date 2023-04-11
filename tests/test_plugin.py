@@ -235,7 +235,10 @@ class TestGitTimestampDescriptor:
 
     def test_get_declares_dependency(self, desc, record, ctx):
         desc.__get__(record)
-        assert '/@git-timestamp' in ctx.referenced_virtual_dependencies
+        virtual_dependencies = ctx.referenced_virtual_dependencies
+        if hasattr(virtual_dependencies, "values"):  # Lektor < 3.4.0b5
+            virtual_dependencies = set(virtual_dependencies.values())
+        assert '/@git-timestamp' in {v.path for v in virtual_dependencies}
 
     def test_init_kwargs(self):
         raw = RawValue('test', None)
