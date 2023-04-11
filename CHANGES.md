@@ -1,6 +1,6 @@
 ## Changelog
 
-### Next Release
+### Release 1.0.0b1 (2023-04-11)
 
 - Drop support for python 2.7 and 3.6. ([#2])
 
