@@ -40,3 +40,6 @@ git-timestamp = "lektor_git_timestamp:GitTimestampPlugin"
 readme = {file = ["README.md", "CHANGES.md"], content-type = "text/markdown"}
 
 [tool.setuptools_scm]
+
+[tool.pytest.ini_options]
+addopts = "--cov-report=term-missing --cov-report=html"
