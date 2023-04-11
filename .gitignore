@@ -1,9 +1,4 @@
 *~
-*.pyc
-*.pyo
+__pycache__/
 lektor_git_timestamp.egg-info
-/dist/
-/build/
 /.tox/
-/.eggs/
-/htmlcov/

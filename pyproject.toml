@@ -1,5 +1,42 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
+requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "lektor-git-timestamp"
+dynamic = ["version", "readme"]
+description = "Lektor type to deduce page modification time from git"
+keywords = ["Lektor plugin",]
+urls.Home = "https://github.com/dairiki/lektor-git-timestamp"
+authors = [
+    {name = "Jeff Dairiki", email = "dairiki@dairiki.org"},
+]
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Plugins",
+    "Environment :: Web Environment",
+    "Framework :: Lektor",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: Text Processing",
+]
+requires-python = ">=3.7"
+dependencies = [
+    "lektorlib",
+]
+
+[project.entry-points."lektor.plugins"]
+git-timestamp = "lektor_git_timestamp:GitTimestampPlugin"
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.md", "CHANGES.md"], content-type = "text/markdown"}
 
 [tool.setuptools_scm]
