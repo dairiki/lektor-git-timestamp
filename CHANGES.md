@@ -1,6 +1,6 @@
 ## Changelog
 
-### Release 1.0.0b2 (unreleased)
+### Release 1.0.0b2 (2023-06-15)
 
 - Added type annotations.
 - Convert packaging to PDM.
