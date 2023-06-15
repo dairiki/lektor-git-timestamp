@@ -29,7 +29,7 @@ list of timestamps.  That list of timestamps is filtered based on the
 finally, a timestamp is selected from those that remain based on the
 setting of the `strategy` option.
 
-### Options
+### Field Options
 
 The `gittimestamp` type supports the following options.
 
@@ -68,6 +68,41 @@ This option determines which timestamp is selected from the git log
 - `earliest`: The earliest timestamp is used.  Normally this produces the same
     result at `first`, but if the timestamps in the git log are not monotonic,
     this will select the minimum of all the timestamps remaining after any filtering.
+
+### Global Configuration
+
+The following global configuration options are supported.
+These values are specified by way of the plugins' [configuration file]:
+`configs/git-timestamp.ini` under the project site directory.
+
+By default, the [`--follow`][git-log-follow] option is passed to `git log` when
+computing timestamps.  This behavior may be adjusted on a global basis by way of the plugins' [configuration file] (`configs/git-timestamp.ini` under the project site directory) via the following settings:
+
+#### `follow_renames`
+
+This is a boolean setting that specifies whether the
+[`--follow`][git-log-follow] option should be passed to `git log` when
+querying git for timestamps.  This options causes `git` to attempt to
+follow file renames.
+
+Currently, if unspecified, `follow_renames` defaults to _true_.
+(This may change in the future.)
+
+> **Note** Since we currently run `git log` on a per-source-file basis, when `--follow`
+> is specified, _copied_ files will be detected as “renamed”. This may not be ideal.
+
+
+#### `follow_rename_threshold`
+
+Set the _similarity index threshold_ (passed to `git log` via its
+[`-M` option][git-log-M]) used when detecting renames. This should be
+specified as a (floating point) number between 0 and 100,
+inclusive. Setting `follow_rename_threshold = 100` will limit
+detection to exact renames only. The default value is 50.
+
+[git-log-M]: https://git-scm.com/docs/git-log#Documentation/git-log.txt--Mltngt
+[git-log-follow]: https://git-scm.com/docs/git-log#Documentation/git-log.txt---follow
+[configuration file]: https://www.getlektor.com/docs/plugins/howto/#configure-plugins
 
 ## Examples
 

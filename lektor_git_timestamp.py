@@ -7,10 +7,12 @@ import os
 import pickle
 import re
 import subprocess
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
 from typing import Iterable
 from typing import Iterator
+from typing import Mapping
 from typing import NamedTuple
 from typing import overload
 from typing import Sequence
@@ -18,6 +20,7 @@ from typing import TYPE_CHECKING
 
 import jinja2
 from lektor.context import get_ctx
+from lektor.pluginsystem import get_plugin
 from lektor.pluginsystem import Plugin
 from lektor.reporter import reporter
 from lektor.sourceobj import VirtualSourceObject
@@ -63,13 +66,23 @@ class Timestamp(NamedTuple):
     commit_message: str | None
 
 
-def _iter_timestamps(filename: StrPath) -> Iterator[Timestamp]:
+def _iter_timestamps(
+    filename: StrPath, config: Mapping[str, str]
+) -> Iterator[Timestamp]:
+    options = ["--remove-empty"]
+    follow_renames = bool_from_string(config.get("follow_renames", "true"))
+    if follow_renames:
+        options.append("--follow")
+        with suppress(LookupError, ValueError):
+            threshold = float(config["follow_rename_threshold"])
+            if 0 < threshold < 100:
+                options.append(f"-M{threshold:.4f}%")
+
     output = run_git(
         "log",
         "--pretty=format:%at %B",
         "-z",
-        "--follow",
-        "--remove-empty",
+        *options,
         "--",
         filename,
     )
@@ -141,7 +154,11 @@ class GitTimestampSource(VirtualSourceObject):  # type: ignore[misc]
 
     @cached_property
     def timestamps(self) -> tuple[Timestamp, ...]:
-        return tuple(_iter_timestamps(self.source_filename))
+        plugin_config: Mapping[str, str] = {}
+        with suppress(LookupError):
+            plugin_config = get_plugin(GitTimestampPlugin, self.pad.env).get_config()
+
+        return tuple(_iter_timestamps(self.source_filename, plugin_config))
 
 
 @dataclass

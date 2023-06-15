@@ -20,9 +20,15 @@ if TYPE_CHECKING:
     from lektor.environment import Environment
 
 
-@pytest.fixture(scope="session")
-def project(tmp_path_factory: pytest.TempPathFactory) -> Project:
-    site_path = tmp_path_factory.mktemp("site")
+@pytest.fixture
+def site_path(tmp_path: Path) -> Path:
+    path = tmp_path / "site"
+    path.mkdir()
+    return path
+
+
+@pytest.fixture
+def project(site_path: Path) -> Project:
     project_file = site_path / "site.lektorproject"
     project_file.write_text(
         """
@@ -91,6 +97,7 @@ class DummyGitRepo:
         filename: StrPath,
         ts: int | datetime.datetime | None = None,
         message: str = "test",
+        data: str | None = None,
     ) -> None:
         env: MutableMapping[str, str]
         if ts is None:
@@ -101,7 +108,13 @@ class DummyGitRepo:
             dt = datetime.datetime.fromtimestamp(ts, utc)
             env = os.environ.copy()
             env["GIT_AUTHOR_DATE"] = dt.isoformat("T")
-        self.modify(filename)
+
+        if data is not None:
+            file_path = self.work_tree / filename
+            file_path.write_text(data)
+        else:
+            self.modify(filename)
+
         self.run_git("add", os.fspath(filename))
         self.run_git("commit", "--message", str(message), env=env)
 

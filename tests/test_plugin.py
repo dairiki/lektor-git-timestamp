@@ -4,6 +4,7 @@ import datetime
 import os
 import re
 from typing import Iterator
+from typing import Mapping
 from typing import TYPE_CHECKING
 
 import jinja2
@@ -69,25 +70,59 @@ class Test__is_dirty:
 
 class Test__iter_timestamps:
     def test_from_git(self, git_repo: DummyGitRepo) -> None:
+        plugin_config: dict[str, str] = {}
         ts = 1589238186
         git_repo.commit("test.txt", ts, "message")
-        assert list(_iter_timestamps("test.txt")) == [(ts, "message\n")]
+        assert list(_iter_timestamps("test.txt", plugin_config)) == [(ts, "message\n")]
 
     def test_from_mtime(self, git_repo: DummyGitRepo) -> None:
+        plugin_config: dict[str, str] = {}
         ts = 1589238186
         git_repo.touch("test.txt", ts)
-        assert list(_iter_timestamps("test.txt")) == [(ts, None)]
+        assert list(_iter_timestamps("test.txt", plugin_config)) == [(ts, None)]
 
     def test_from_mtime_and_git(self, git_repo: DummyGitRepo) -> None:
+        plugin_config: dict[str, str] = {}
         ts1 = 1589238000
         ts2 = 1589238180
         git_repo.commit("test.txt", ts1, "commit")
         git_repo.modify("test.txt")
         git_repo.touch("test.txt", ts2)
-        assert list(_iter_timestamps("test.txt")) == [
+        assert list(_iter_timestamps("test.txt", plugin_config)) == [
             (ts2, None),
             (ts1, "commit\n"),
         ]
+
+    @pytest.mark.parametrize(
+        "plugin_config, expected_commits",
+        [
+            ({}, 3),
+            ({"follow_renames": "yes"}, 3),
+            ({"follow_renames": "yes", "follow_rename_threshold": "10"}, 3),
+            ({"follow_renames": "yes", "follow_rename_threshold": "99.99"}, 2),
+            ({"follow_renames": "no"}, 1),
+        ],
+    )
+    def test_follow(
+        self,
+        git_repo: DummyGitRepo,
+        plugin_config: Mapping[str, str],
+        expected_commits: int,
+    ) -> None:
+        ts1 = 1589238000
+        ts2 = 1589238180
+        ts3 = 1589238360
+        git_repo.commit("name1.txt", ts1, "commit 1", data="content\nline2\n")
+        git_repo.commit("name2.txt", ts2, "commit 2", data="content\n")
+        git_repo.commit("name3.txt", ts3, "commit 3", data="content\n")
+        assert (
+            list(_iter_timestamps("name3.txt", plugin_config))
+            == [
+                (ts3, "commit 3\n"),
+                (ts2, "commit 2\n"),
+                (ts1, "commit 1\n"),
+            ][:expected_commits]
+        )
 
 
 class Test_get_mtime:
