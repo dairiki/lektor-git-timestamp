@@ -71,7 +71,7 @@ class Test__iter_timestamps:
     def test_from_git(self, git_repo: DummyGitRepo) -> None:
         ts = 1589238186
         git_repo.commit("test.txt", ts, "message")
-        assert list(_iter_timestamps("test.txt")) == [(ts, "message")]
+        assert list(_iter_timestamps("test.txt")) == [(ts, "message\n")]
 
     def test_from_mtime(self, git_repo: DummyGitRepo) -> None:
         ts = 1589238186
@@ -86,7 +86,7 @@ class Test__iter_timestamps:
         git_repo.touch("test.txt", ts2)
         assert list(_iter_timestamps("test.txt")) == [
             (ts2, None),
-            (ts1, "commit"),
+            (ts1, "commit\n"),
         ]
 
 

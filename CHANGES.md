@@ -14,6 +14,12 @@
 
 - Disuse the deprecated module `pkg_resources`.
 
+#### Buglets
+
+- Do not strip trailing whitespace from `git log` output. (This was
+  erroneously removing trailing newlines from the final commit
+  message.)
+
 [black]: https://github.com/psf/black
 [pre-commit]: https://pre-commit.com/
 [reorder-python-imports]: https://github.com/asottile/reorder-python-imports

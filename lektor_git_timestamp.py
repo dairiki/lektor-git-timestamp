@@ -39,7 +39,7 @@ VIRTUAL_PATH_PREFIX = "git-timestamp"
 def run_git(*args: str | StrPath) -> str:
     cmd = ("git", *args)
     proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return proc.stdout.rstrip()
+    return proc.stdout
 
 
 def _fs_mtime(filename: StrPath) -> int | None:
