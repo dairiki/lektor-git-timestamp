@@ -1,14 +1,18 @@
 import datetime
 import shutil
+import sys
 from pathlib import Path
 
 import jinja2
 import lektor.metaformat
 import lektor.project
 import pytest
-from pkg_resources import get_distribution, parse_version
+from packaging.version import Version
 
-lektor_version = get_distribution("lektor").parsed_version
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+else:
+    import importlib_metadata as metadata
 
 
 @pytest.fixture
@@ -103,7 +107,7 @@ def test_last_mod_for_dirty_file(git_repo, pad, pub_date, last_mod, now):
 
 
 @pytest.mark.xfail(
-    lektor_version < parse_version("3.3"),
+    Version(metadata.version("lektor")) < Version("3.3"),
     reason="Lektor is too old to support sorting by descriptor-valued fields"
 )
 def test_get_sort_key(git_repo, pad, pub_date):

@@ -61,6 +61,8 @@ dev = [
 test = [
     "pytest>=7.3.1",
     "pytest-cov",
+    "importlib_metadata; python_version<'3.8'",
+    "packaging",
 ]
 
 [tool.pytest.ini_options]
