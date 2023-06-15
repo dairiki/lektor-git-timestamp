@@ -2,7 +2,8 @@
 
 ### Release 1.0.0b2 (unreleased)
 
-- Convert packaging to PDM
+- Added type annotations.
+- Convert packaging to PDM.
 
 #### Code Style
 
