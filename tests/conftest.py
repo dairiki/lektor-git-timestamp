@@ -3,20 +3,21 @@ import os
 import subprocess
 
 import pytest
-
 from lektor.context import Context
 from lektor.db import Page
 from lektor.project import Project
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def project(tmp_path_factory):
-    site_path = tmp_path_factory.mktemp('site')
-    project_file = site_path / 'site.lektorproject'
-    project_file.write_text("""
+    site_path = tmp_path_factory.mktemp("site")
+    project_file = site_path / "site.lektorproject"
+    project_file.write_text(
+        """
     [project]
     name = Test Project
-    """)
+    """
+    )
     return Project.from_file(project_file)
 
 
@@ -43,7 +44,8 @@ def ctx(pad):
 
 try:
     utc = datetime.timezone.utc
-except AttributeError:          # py2
+except AttributeError:  # py2
+
     class UTC(datetime.tzinfo):
         def utcoffset(self, dt):
             return datetime.timedelta(0)
@@ -53,17 +55,18 @@ except AttributeError:          # py2
 
         def dst(self, dt):
             return datetime.timedelta(0)
+
     utc = UTC()
 
 
 class DummyGitRepo:
     def __init__(self, work_tree):
         self.work_tree = work_tree
-        self.run_git('init')
-        self.run_git('commit', '--message=initial', '--allow-empty')
+        self.run_git("init")
+        self.run_git("commit", "--message=initial", "--allow-empty")
 
     def run_git(self, *args, **kwargs):
-        cmd = ['git'] + list(args)
+        cmd = ["git"] + list(args)
         subprocess.check_call(cmd, cwd=self.work_tree, **kwargs)
 
     def touch(self, filename, ts=None):
@@ -76,12 +79,12 @@ class DummyGitRepo:
 
     def modify(self, filename, ts=None):
         file_path = self.work_tree / filename
-        with file_path.open('at') as f:
-            f.write('---\nchanged\n')
+        with file_path.open("at") as f:
+            f.write("---\nchanged\n")
         if ts is not None:
             self.touch(filename, ts)
 
-    def commit(self, filename, ts=None, message='test'):
+    def commit(self, filename, ts=None, message="test"):
         if ts is None:
             env = os.environ
         else:
@@ -89,10 +92,10 @@ class DummyGitRepo:
                 ts = int(ts.strftime("%s"))
             dt = datetime.datetime.fromtimestamp(ts, utc)
             env = os.environ.copy()
-            env['GIT_AUTHOR_DATE'] = dt.isoformat('T')
+            env["GIT_AUTHOR_DATE"] = dt.isoformat("T")
         self.modify(filename)
-        self.run_git('add', os.fspath(filename))
-        self.run_git('commit', '--message', str(message), env=env)
+        self.run_git("add", os.fspath(filename))
+        self.run_git("commit", "--message", str(message), env=env)
 
 
 @pytest.fixture

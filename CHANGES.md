@@ -4,9 +4,18 @@
 
 - Convert packaging to PDM
 
+#### Code Style
+
+- Style: Run [black] and [reorder-python-imports] on code. Configure
+  [pre-commit] to keep all up-to-date.
+
 #### Tests
 
 - Disuse the deprecated module `pkg_resources`.
+
+[black]: https://github.com/psf/black
+[pre-commit]: https://pre-commit.com/
+[reorder-python-imports]: https://github.com/asottile/reorder-python-imports
 
 ### Release 1.0.0b1 (2023-04-11)
 
@@ -47,4 +56,3 @@ default `strategy=last` for picking timestamps.
 ### Release 0.1a1 (2020-06-16)
 
 Initial release.
-

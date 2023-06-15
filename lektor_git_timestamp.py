@@ -1,11 +1,11 @@
-from collections import namedtuple
 import datetime
 import hashlib
-from operator import attrgetter
 import os
 import pickle
 import re
 import subprocess
+from collections import namedtuple
+from operator import attrgetter
 
 import jinja2
 from lektor.context import get_ctx
@@ -14,15 +14,14 @@ from lektor.reporter import reporter
 from lektor.sourceobj import VirtualSourceObject
 from lektor.types import DateTimeType
 from lektor.utils import bool_from_string
+from lektorlib.recordcache import get_or_create_virtual
 from werkzeug.utils import cached_property
 
-from lektorlib.recordcache import get_or_create_virtual
-
-VIRTUAL_PATH_PREFIX = 'git-timestamp'
+VIRTUAL_PATH_PREFIX = "git-timestamp"
 
 
 def run_git(*args):
-    cmd = ('git', *args)
+    cmd = ("git", *args)
     proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return proc.stdout.rstrip()
 
@@ -39,31 +38,36 @@ def _fs_mtime(filename):
 
 
 def _is_dirty(filename):
-    status = run_git('status', '-z', '--', filename)
-    return status != ''
+    status = run_git("status", "-z", "--", filename)
+    return status != ""
 
 
-timestamp = namedtuple('timestamp', ['ts', 'commit_message'])
+timestamp = namedtuple("timestamp", ["ts", "commit_message"])
 
 
 def _iter_timestamps(filename):
-    output = run_git('log', '--pretty=format:%at %B', '-z',
-                     '--follow', '--remove-empty',
-                     '--', filename)
+    output = run_git(
+        "log",
+        "--pretty=format:%at %B",
+        "-z",
+        "--follow",
+        "--remove-empty",
+        "--",
+        filename,
+    )
     if not output or _is_dirty(filename):
         ts = _fs_mtime(filename)
         if ts is not None:
             yield timestamp(ts, None)
     if output:
-        for line in output.split('\0'):
-            ts, _, commit_message = line.partition(' ')
+        for line in output.split("\0"):
+            ts, _, commit_message = line.partition(" ")
             yield timestamp(int(ts), commit_message)
 
 
-def get_mtime(timestamps,
-              ignore_commits=None,
-              strategy='last',
-              skip_first_commit=False):
+def get_mtime(
+    timestamps, ignore_commits=None, strategy="last", skip_first_commit=False
+):
     def is_not_ignored(timestamp):
         if ignore_commits is None:
             return True
@@ -78,13 +82,13 @@ def get_mtime(timestamps,
 
     if len(filtered) == 0:
         return None
-    elif strategy == 'first':
+    elif strategy == "first":
         return filtered[-1].ts
-    elif strategy == 'earliest':
-        return min(map(attrgetter('ts'), filtered))
-    elif strategy == 'latest':
-        return max(map(attrgetter('ts'), filtered))
-    else:                       # strategy == 'last'
+    elif strategy == "earliest":
+        return min(map(attrgetter("ts"), filtered))
+    elif strategy == "latest":
+        return max(map(attrgetter("ts"), filtered))
+    else:  # strategy == 'last'
         return filtered[0].ts
 
 
@@ -97,6 +101,7 @@ class GitTimestampSource(VirtualSourceObject):
     def get(cls, record):
         def creator():
             return cls(record)
+
         return get_or_create_virtual(record, VIRTUAL_PATH_PREFIX, creator)
 
     @property
@@ -112,16 +117,15 @@ class GitTimestampSource(VirtualSourceObject):
 
 
 class GitTimestampDescriptor:
-    def __init__(self, raw,
-                 ignore_commits=None,
-                 strategy='last',
-                 skip_first_commit=False):
+    def __init__(
+        self, raw, ignore_commits=None, strategy="last", skip_first_commit=False
+    ):
         self.raw = raw
         self.kwargs = {
-            'ignore_commits': ignore_commits,
-            'strategy': strategy,
-            'skip_first_commit': skip_first_commit,
-            }
+            "ignore_commits": ignore_commits,
+            "strategy": strategy,
+            "skip_first_commit": skip_first_commit,
+        }
 
     def __get__(self, obj, type_=None):
         if obj is None:
@@ -143,17 +147,18 @@ class GitTimestampType(DateTimeType):
             options = self.options
             value = GitTimestampDescriptor(
                 raw,
-                ignore_commits=options.get('ignore_commits'),
-                strategy=options.get('strategy', 'last'),
+                ignore_commits=options.get("ignore_commits"),
+                strategy=options.get("strategy", "last"),
                 skip_first_commit=bool_from_string(
-                    options.get('skip_first_commit', False)),
-                )
+                    options.get("skip_first_commit", False)
+                ),
+            )
         return value
 
 
 class GitTimestampPlugin(Plugin):
-    name = 'git-timestamp'
-    description = 'Lektor type to deduce page modification time from git'
+    name = "git-timestamp"
+    description = "Lektor type to deduce page modification time from git"
 
     def on_setup_env(self, **extra):
         env = self.env
