@@ -1,4 +1,4 @@
 *~
 __pycache__/
-lektor_git_timestamp.egg-info
 /.tox/
+/.pdm-python
