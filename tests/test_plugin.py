@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import os
 import re
+import subprocess
 from typing import Iterator
 from typing import Mapping
 from typing import TYPE_CHECKING
@@ -37,6 +38,13 @@ if TYPE_CHECKING:
 def test_run_git() -> None:
     output = run_git("--version")
     assert output.startswith("git version")
+
+
+def test_run_git_output_stderr_on_error(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(subprocess.CalledProcessError):
+        run_git("unknown-command-xxx")
+    out, err = capsys.readouterr()
+    assert "unknown-command-xxx" in err
 
 
 class Test__fs_mtime:
