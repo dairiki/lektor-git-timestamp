@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import datetime
 import os
-import re
 import subprocess
 from typing import Iterator
 from typing import Mapping
+from typing import Sequence
 from typing import TYPE_CHECKING
 
 import jinja2
 import pytest
 from lektor.environment import PRIMARY_ALT
-from lektor.reporter import BufferReporter
 from lektor.types import RawValue
 
 from conftest import DummyGitRepo
@@ -51,14 +50,10 @@ class Test__fs_mtime:
     def test(self, git_repo: DummyGitRepo) -> None:
         ts = 1589238180
         git_repo.touch("test.txt", ts)
-        assert _fs_mtime("test.txt") == ts
+        assert _fs_mtime(["test.txt"]) == ts
 
     def test_missing_file(self, git_repo: DummyGitRepo, env: Environment) -> None:
-        with BufferReporter(env) as reporter:
-            assert _fs_mtime("test.txt") is None
-        event, data = reporter.buffer[0]
-        assert event == "generic"
-        assert re.match(r"(?i)test.txt: .*\bno such file", data["message"])
+        assert _fs_mtime(["test.txt"]) is None
 
 
 class Test__is_dirty:
@@ -81,13 +76,15 @@ class Test__iter_timestamps:
         plugin_config: dict[str, str] = {}
         ts = 1589238186
         git_repo.commit("test.txt", ts, "message")
-        assert list(_iter_timestamps("test.txt", plugin_config)) == [(ts, "message\n")]
+        assert list(_iter_timestamps(["test.txt"], plugin_config)) == [
+            (ts, "message\n")
+        ]
 
     def test_from_mtime(self, git_repo: DummyGitRepo) -> None:
         plugin_config: dict[str, str] = {}
         ts = 1589238186
         git_repo.touch("test.txt", ts)
-        assert list(_iter_timestamps("test.txt", plugin_config)) == [(ts, None)]
+        assert list(_iter_timestamps(["test.txt"], plugin_config)) == [(ts, None)]
 
     def test_from_mtime_and_git(self, git_repo: DummyGitRepo) -> None:
         plugin_config: dict[str, str] = {}
@@ -96,7 +93,7 @@ class Test__iter_timestamps:
         git_repo.commit("test.txt", ts1, "commit")
         git_repo.modify("test.txt")
         git_repo.touch("test.txt", ts2)
-        assert list(_iter_timestamps("test.txt", plugin_config)) == [
+        assert list(_iter_timestamps(["test.txt"], plugin_config)) == [
             (ts2, None),
             (ts1, "commit\n"),
         ]
@@ -124,13 +121,24 @@ class Test__iter_timestamps:
         git_repo.commit("name2.txt", ts2, "commit 2", data="content\n")
         git_repo.commit("name3.txt", ts3, "commit 3", data="content\n")
         assert (
-            list(_iter_timestamps("name3.txt", plugin_config))
+            list(_iter_timestamps(["name3.txt"], plugin_config))
             == [
                 (ts3, "commit 3\n"),
                 (ts2, "commit 2\n"),
                 (ts1, "commit 1\n"),
             ][:expected_commits]
         )
+
+    def test_from_git_two_files(self, git_repo: DummyGitRepo) -> None:
+        plugin_config: dict[str, str] = {}
+        ts1 = 1589238186
+        ts2 = 1589238198
+        git_repo.commit("test1.txt", ts1, "message1")
+        git_repo.commit("test2.txt", ts2, "message2")
+        assert list(_iter_timestamps(["test1.txt", "test2.txt"], plugin_config)) == [
+            (ts2, "message2\n"),
+            (ts1, "message1\n"),
+        ]
 
 
 class Test_get_mtime:
@@ -211,13 +219,19 @@ class Test_get_mtime:
 class DummyPage:
     alt = PRIMARY_ALT
 
-    def __init__(self, source_filename: str, path: str = "/", pad: Pad | None = None):
-        self.source_filename = source_filename
+    def __init__(
+        self, source_filenames: Sequence[str], path: str = "/", pad: Pad | None = None
+    ):
+        self.source_filenames = source_filenames
         self.path = path
         self.pad = pad
 
+    @property
+    def source_filename(self) -> str | None:
+        return next(self.iter_source_filenames(), None)
+
     def iter_source_filenames(self) -> Iterator[str]:
-        yield self.source_filename
+        return iter(self.source_filenames)
 
 
 class TestGitTimestampSource:
@@ -229,7 +243,7 @@ class TestGitTimestampSource:
     def record(self, git_repo: DummyGitRepo, ts_now: int, pad: Pad) -> Record:
         git_repo.touch("test.txt", ts_now)
         source_filename = os.path.abspath("test.txt")
-        return DummyPage(source_filename, path="/test", pad=pad)
+        return DummyPage([source_filename], path="/test", pad=pad)
 
     @pytest.fixture
     def src(self, record: Record) -> GitTimestampSource:
@@ -269,7 +283,7 @@ class TestGitTimestampDescriptor:
     @pytest.fixture
     def record(self, git_repo: DummyGitRepo, pad: Pad) -> Record:
         source_filename = os.path.abspath("test.txt")
-        return DummyPage(source_filename, pad=pad)
+        return DummyPage([source_filename], pad=pad)
 
     def test_class_descriptor(self, desc: GitTimestampDescriptor) -> None:
         assert desc.__get__(None) is desc
@@ -320,7 +334,7 @@ class TestGitTimestampPlugin:
     @pytest.fixture
     def record(self, git_repo: DummyGitRepo, pad: Pad) -> Record:
         source_filename = os.path.abspath("test.txt")
-        return DummyPage(source_filename, pad=pad)
+        return DummyPage([source_filename], pad=pad)
 
     def test_on_setup_env(self, plugin: GitTimestampPlugin, env: Environment) -> None:
         plugin.on_setup_env()

@@ -8,6 +8,7 @@ import pickle
 import re
 import subprocess
 import sys
+import warnings
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
@@ -23,7 +24,6 @@ import jinja2
 from lektor.context import get_ctx
 from lektor.pluginsystem import get_plugin
 from lektor.pluginsystem import Plugin
-from lektor.reporter import reporter
 from lektor.sourceobj import VirtualSourceObject
 from lektor.types import DateTimeType
 from lektor.utils import bool_from_string
@@ -51,15 +51,15 @@ def run_git(*args: str | StrPath) -> str:
     return proc.stdout
 
 
-def _fs_mtime(filename: StrPath) -> int | None:
-    try:
-        st = os.stat(filename)
-    except OSError as exc:
-        reporter.report_generic(f"{filename}: {exc!s}")
+def _fs_mtime(filenames: Iterable[StrPath]) -> int | None:
+    mtimes = []
+    for filename in filenames:
+        with suppress(OSError):
+            mtimes.append(os.stat(filename).st_mtime)
+    if len(mtimes) == 0:
         return None
-    else:
-        # (truncate to one second resolution)
-        return int(st.st_mtime)
+    # (truncate to one second resolution)
+    return int(max(mtimes))
 
 
 def _is_dirty(filename: StrPath) -> bool:
@@ -73,16 +73,23 @@ class Timestamp(NamedTuple):
 
 
 def _iter_timestamps(
-    filename: StrPath, config: Mapping[str, str]
+    filenames: Sequence[StrPath], config: Mapping[str, str]
 ) -> Iterator[Timestamp]:
     options = ["--remove-empty"]
     follow_renames = bool_from_string(config.get("follow_renames", "true"))
     if follow_renames:
-        options.append("--follow")
-        with suppress(LookupError, ValueError):
-            threshold = float(config["follow_rename_threshold"])
-            if 0 < threshold < 100:
-                options.append(f"-M{threshold:.4f}%")
+        if len(filenames) > 1:
+            warnings.warn(
+                "The follow_renames option is not supported when records have"
+                " multiple source files (e.g. when alts are in use).",
+                stacklevel=2,
+            )
+        else:
+            options.append("--follow")
+            with suppress(LookupError, ValueError):
+                threshold = float(config["follow_rename_threshold"])
+                if 0 < threshold < 100:
+                    options.append(f"-M{threshold:.4f}%")
 
     output = run_git(
         "log",
@@ -90,12 +97,16 @@ def _iter_timestamps(
         "-z",
         *options,
         "--",
-        filename,
+        *filenames,
     )
-    if not output or _is_dirty(filename):
-        ts = _fs_mtime(filename)
-        if ts is not None:
-            yield Timestamp(ts, None)
+
+    if not output:
+        ts = _fs_mtime(filenames)
+    else:
+        ts = _fs_mtime(filter(_is_dirty, filenames))
+    if ts is not None:
+        yield Timestamp(ts, None)
+
     if output:
         for line in output.split("\0"):
             tstamp, _, commit_message = line.partition(" ")
@@ -163,8 +174,14 @@ class GitTimestampSource(VirtualSourceObject):  # type: ignore[misc]
         plugin_config: Mapping[str, str] = {}
         with suppress(LookupError):
             plugin_config = get_plugin(GitTimestampPlugin, self.pad.env).get_config()
+        source_filenames = tuple(self.iter_source_filenames())
+        return tuple(_iter_timestamps(source_filenames, plugin_config))
 
-        return tuple(_iter_timestamps(self.source_filename, plugin_config))
+    def iter_source_filenames(self) -> Iterator[StrPath]:
+        # Compatibility: The default implementation of
+        # VirtualSourceObject.iter_source_filenames in Lektor < 3.4
+        # returns only the primary source filename.
+        return self.record.iter_source_filenames()  # type: ignore[no-any-return]
 
 
 @dataclass

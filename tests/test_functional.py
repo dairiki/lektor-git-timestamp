@@ -21,11 +21,31 @@ if TYPE_CHECKING:
     from lektor.environment import Environment
 
 
+@pytest.fixture(params=(False, True))
+def enable_alts(request: pytest.FixtureRequest) -> bool:
+    return request.param  # type: ignore[no-any-return]
+
+
+ALT_CONFIG = """
+[alternatives.en]
+name = English
+primary = yes
+
+[alternatives.de]
+name = German
+url_prefix = /de/
+locale = de
+"""
+
+
 @pytest.fixture
-def project(tmp_path: Path) -> Project:
+def project(tmp_path: Path, enable_alts: bool) -> Project:
     site_src = Path(__file__).parent / "test-site"
     site_path = tmp_path / "site"
     shutil.copytree(site_src, site_path)
+    if enable_alts:
+        with Path(site_path, "Test Site.lektorproject").open("a") as fp:
+            fp.write(ALT_CONFIG)
     return Project.from_path(site_path)
 
 
@@ -145,6 +165,34 @@ def test_last_mod_for_dirty_file(
 ) -> None:
     git_repo.commit("site/content/contents.lr", pub_date)
     git_repo.commit("site/content/contents.lr", last_mod)
+    git_repo.modify("site/content/contents.lr", now)
+    assert pad.root["pub_date"] == pub_date
+    assert pad.root["last_mod"] == now
+
+
+def test_pub_date_de_file(
+    git_repo: DummyGitRepo,
+    pad: Pad,
+    pub_date: datetime.datetime,
+    now: datetime.datetime,
+) -> None:
+    git_repo.commit(
+        ("site/content/contents+de.lr", "site/content/contents.lr"), pub_date
+    )
+    git_repo.touch("site/content/contents.lr", now)
+    assert pad.root["pub_date"] == pub_date
+    assert jinja2.is_undefined(pad.root["last_mod"])
+
+
+def test_lastmod_de_file(
+    git_repo: DummyGitRepo,
+    pad: Pad,
+    pub_date: datetime.datetime,
+    now: datetime.datetime,
+) -> None:
+    git_repo.commit(
+        ("site/content/contents+de.lr", "site/content/contents.lr"), pub_date
+    )
     git_repo.modify("site/content/contents.lr", now)
     assert pad.root["pub_date"] == pub_date
     assert pad.root["last_mod"] == now

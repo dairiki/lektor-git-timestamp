@@ -94,7 +94,7 @@ class DummyGitRepo:
 
     def commit(
         self,
-        filename: StrPath,
+        filename_: StrPath | tuple[StrPath, ...],
         ts: int | datetime.datetime | None = None,
         message: str = "test",
         data: str | None = None,
@@ -109,13 +109,16 @@ class DummyGitRepo:
             env = os.environ.copy()
             env["GIT_AUTHOR_DATE"] = dt.isoformat("T")
 
-        if data is not None:
-            file_path = self.work_tree / filename
-            file_path.write_text(data)
-        else:
-            self.modify(filename)
+        filenames = filename_ if isinstance(filename_, tuple) else (filename_,)
+        for filename in filenames:
+            if data is not None:
+                file_path = self.work_tree / filename
+                file_path.write_text(data)
+            else:
+                self.modify(filename)
 
-        self.run_git("add", os.fspath(filename))
+            self.run_git("add", os.fspath(filename))
+
         self.run_git("commit", "--message", str(message), env=env)
 
 
