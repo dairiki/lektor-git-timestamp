@@ -17,7 +17,13 @@
 
 - Test under python 3.12.
 
+#### Code Style
+
+- Style: Use [ruff] for style linting and formatting. This replaces
+  our usage of `black`, `reorder-python-imports`, and `flake8`.
+
 [alternatives]: https://www.getlektor.com/docs/content/alts/
+[ruff]: https://docs.astral.sh/ruff/
 
 ### Release 1.0.0b2 (2023-06-15)
 
