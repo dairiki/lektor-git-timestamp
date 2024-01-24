@@ -1,6 +1,6 @@
 ## Changelog
 
-### Release 1.0.0b3 (unreleased)
+### Release 1.0.0b3 (2024-01-23)
 
 #### Breaking Changes
 
