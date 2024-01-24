@@ -18,6 +18,7 @@ from lektor_git_timestamp import _compute_checksum
 from lektor_git_timestamp import _fs_mtime
 from lektor_git_timestamp import _is_dirty
 from lektor_git_timestamp import _iter_timestamps
+from lektor_git_timestamp import ConfigurationError
 from lektor_git_timestamp import get_mtime
 from lektor_git_timestamp import GitTimestampDescriptor
 from lektor_git_timestamp import GitTimestampPlugin
@@ -101,7 +102,7 @@ class Test__iter_timestamps:
     @pytest.mark.parametrize(
         "plugin_config, expected_commits",
         [
-            ({}, 3),
+            ({}, 1),
             ({"follow_renames": "yes"}, 3),
             ({"follow_renames": "yes", "follow_rename_threshold": "10"}, 3),
             ({"follow_renames": "yes", "follow_rename_threshold": "99.99"}, 2),
@@ -139,6 +140,11 @@ class Test__iter_timestamps:
             (ts2, "message2\n"),
             (ts1, "message1\n"),
         ]
+
+    def test_raises_configuration_error(self, git_repo: DummyGitRepo) -> None:
+        plugin_config = {"follow_renames": "true"}
+        with pytest.raises(ConfigurationError):
+            next(_iter_timestamps(["name1.txt", "name2.txt"], plugin_config))
 
 
 class Test_get_mtime:

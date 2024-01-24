@@ -2,8 +2,22 @@
 
 ### Release 1.0.0b3 (unreleased)
 
+#### Breaking Changes
+
 - Drop support for python 3.8.
+- The default value for the `follow_renames` global config setting has
+  changed from _true_ to _false_.
+
+#### Bugs Fixed
+
+- Fix to work when [alternatives] are enabled. Note that in this case
+  the `follow_renames` global option is not supported.
+
+#### Testing
+
 - Test under python 3.12.
+
+[alternatives]: https://www.getlektor.com/docs/content/alts/
 
 ### Release 1.0.0b2 (2023-06-15)
 

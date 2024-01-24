@@ -8,7 +8,6 @@ import pickle
 import re
 import subprocess
 import sys
-import warnings
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
@@ -38,6 +37,10 @@ if TYPE_CHECKING:
 
 
 VIRTUAL_PATH_PREFIX = "git-timestamp"
+
+
+class ConfigurationError(ValueError):
+    """Invalid configuration setting."""
 
 
 def run_git(*args: str | StrPath) -> str:
@@ -72,24 +75,25 @@ class Timestamp(NamedTuple):
     commit_message: str | None
 
 
+_FOLLOW_RENAMES_NOT_ALLOWED = (
+    "The follow_renames option is not supported when records have"
+    " multiple source files (e.g. when alts are in use)."
+)
+
+
 def _iter_timestamps(
     filenames: Sequence[StrPath], config: Mapping[str, str]
 ) -> Iterator[Timestamp]:
     options = ["--remove-empty"]
-    follow_renames = bool_from_string(config.get("follow_renames", "true"))
+    follow_renames = bool_from_string(config.get("follow_renames", "false"))
     if follow_renames:
         if len(filenames) > 1:
-            warnings.warn(
-                "The follow_renames option is not supported when records have"
-                " multiple source files (e.g. when alts are in use).",
-                stacklevel=2,
-            )
-        else:
-            options.append("--follow")
-            with suppress(LookupError, ValueError):
-                threshold = float(config["follow_rename_threshold"])
-                if 0 < threshold < 100:
-                    options.append(f"-M{threshold:.4f}%")
+            raise ConfigurationError(_FOLLOW_RENAMES_NOT_ALLOWED)
+        options.append("--follow")
+        with suppress(LookupError, ValueError):
+            threshold = float(config["follow_rename_threshold"])
+            if 0 < threshold < 100:
+                options.append(f"-M{threshold:.4f}%")
 
     output = run_git(
         "log",

@@ -85,16 +85,17 @@ This is a boolean setting that specifies whether the
 querying git for timestamps.  This options causes `git` to attempt to
 follow file renames.
 
-Currently, if unspecified, `follow_renames` defaults to _true_.
-(This may change in the future.)
+Currently, the `follow_renames` is not supported when [Lektor
+Alternatives][lektor-alts] are enabled.
+
+If unspecified, `follow_renames` defaults to _false_.
+
+> **Changed** in version 1.0.0b3: The default value for
+> `follow_renames` was changed from _true_ to _false_.
 
 > **Note** Since we currently run `git log` on a per-record basis, when `--follow`
 > is specified, _copied_ files may be detected as “renamed”. This may not be ideal.
 
-> **Note** `follow_renames` is not supported with Lektor’s
-> [alternatives][alts] feature is enabled. (When _alts_ are in use,
-> each record has multiple source files. `Git log` does not support
-> the `--follow` option when multiple source files are specified.)
 
 #### `follow_rename_threshold`
 
@@ -107,7 +108,7 @@ detection to exact renames only. The default value is 50.
 [git-log-M]: https://git-scm.com/docs/git-log#Documentation/git-log.txt--Mltngt
 [git-log-follow]: https://git-scm.com/docs/git-log#Documentation/git-log.txt---follow
 [configuration file]: https://www.getlektor.com/docs/plugins/howto/#configure-plugins
-[alts]: https://www.getlektor.com/docs/content/alts/
+[lektor-alts]: https://www.getlektor.com/docs/content/alts/
 
 ## Examples
 
