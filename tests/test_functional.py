@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import shutil
-import sys
+from importlib import metadata
 from pathlib import Path
 from typing import Iterable
 from typing import TYPE_CHECKING
@@ -14,11 +14,6 @@ from lektor.project import Project
 from packaging.version import Version
 
 from conftest import DummyGitRepo
-
-if sys.version_info >= (3, 8):
-    from importlib import metadata
-else:
-    import importlib_metadata as metadata
 
 if TYPE_CHECKING:
     from _typeshed import StrPath

@@ -1,5 +1,10 @@
 ## Changelog
 
+### Release 1.0.0b3 (unreleased)
+
+- Drop support for python 3.8.
+- Test under python 3.12.
+
 ### Release 1.0.0b2 (2023-06-15)
 
 - Added type annotations.
